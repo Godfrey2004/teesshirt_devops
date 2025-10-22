@@ -1,0 +1,160 @@
+name: CI/CD Pipeline for TeeTime Store
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: teetime-store
+  ECS_SERVICE: teetime-store-service
+  ECS_CLUSTER: teetime-store-cluster
+  APP_NAME: teetime-store
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify required files exist
+        run: |
+          echo "Checking required files..."
+          if [ ! -f "src/index.html" ]; then
+            echo "❌ ERROR: src/index.html not found"
+            exit 1
+          fi
+          if [ ! -f "Dockerfile" ]; then
+            echo "❌ ERROR: Dockerfile not found"
+            exit 1
+          fi
+          if [ ! -f "nginx.conf" ]; then
+            echo "❌ ERROR: nginx.conf not found"
+            exit 1
+          fi
+          echo "✅ All required files present"
+
+      - name: Test HTML syntax
+        run: |
+          echo "Testing HTML structure..."
+          if ! grep -q "<!DOCTYPE html>" src/index.html; then
+            echo "❌ ERROR: Missing DOCTYPE in index.html"
+            exit 1
+          fi
+          if ! grep -q "<title>" src/index.html; then
+            echo "❌ ERROR: Missing title tag in index.html"
+            exit 1
+          fi
+          echo "✅ HTML structure test passed"
+
+      - name: Test Docker build
+        run: |
+          echo "Testing Docker build..."
+          docker build -t teetime-test .
+          echo "✅ Docker build test passed"
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.ECR_REPOSITORY }}:latest .
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+
+      - name: Save ECR image URI
+        run: |
+          echo "IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_ENV
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ./infrastructure
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./infrastructure
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./infrastructure
+
+      - name: Terraform Plan
+        run: terraform plan -var="environment=prod"
+        working-directory: ./infrastructure
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var="environment=prod"
+        working-directory: ./infrastructure
+
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for service stability
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }}
+
+  success-notification:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always() && needs.deploy.result == 'success'
+    
+    steps:
+      - name: Deployment Success
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo "Application is now live on AWS ECS"
