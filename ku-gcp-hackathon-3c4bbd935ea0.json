@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "ku-gcp-hackathon",
+  "private_key_id": "3c4bbd935ea0527f9f5e5a3d31be515070239a0f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCklokBEadb3ADN\nyrNfXC8rqd+f0+zXYFOGN4GflG9NtSJje7Eqd/qh1eHE4V2hb2Ke9VHaZS/q9PFT\nyqaGJ41e8RXutyH+soB8st28yYpwiVfu0PB8xmJCEEE1nWcvWxYrmaLXarcRhyvF\nO46ypJsVvnG9zWNgO4NxDNSbZl22c/XREK5J/lp6NRIcafx6t7kVt/9At2TroPFT\ngpebRPWuicWF1kQTFNNfCeoJCSV31pBuHkmAQ9e0tex0lJUACaIqBPb5duoec564\nRaRA5tZRvq8XOUjKerGDJabzyQd3pzhaNtxZ0rBL6Kz7JZleAEOfR1uZjnvMn3EX\n0/9KDbl/AgMBAAECggEAAR5q2QCDODsjIEL//CZ2xZ+2fvIkWoRznOZ0sZ6DMS6J\niM6W8jh1kjMPgVSc29OTgowdXdQxQrIej9jBUAkly17tLL2+8+nHuNFIc5eVItW0\nLNHryJVapqNQpionQOmoGWzGcBtwGiTmlcUlX66BxWCRil5Cji1pY9PYACRuf6aA\nW1jW3tPUmA8X7gRD1CPMZs6tuNO74fRrDwRiiFj9Xg600zGuXC7BfZV+scpxOEjL\nFQZ68ZcuD1IEvw9L6weL7syNS3EmNUCuO5UgdlNsgiR/ynyHjioLNAnkd759UfZ6\nO6Y/qOr008mNGSQaEDbmjMeksKpCgVtYMgN+79UEDQKBgQDOBmbzZfFKe+Dbg9kf\nhsbc31VRKi2enYJmOmgn5homYSqyugDgwmtTfWrH5jqJFg6Iy+hqBGecXKre3xAM\n6ddAn63o1UgvjeHoiytoqx3Qll8T5nJUqNSU0W8pzvu0VAqxQ9AcINeLLmO8z/vz\nQZ76XK9HP7Qz+Je6L9YKYxBXswKBgQDMgwIZUo2J4TPAu4G5YVX44ifDWKWGH/nC\nTNpWALgL5i6VlT1dpaQ6cUntZIYzYXyKwTR0Rg+TQ0+vAvYI56vwI3028aWXkX7B\nzhS/fbdNz3s6Fd9aBJKmjy4CYXNbf6tbDhRme9v5TZI4dlMxRzYJXzb7wHQvVtiQ\nfLZxaOJxBQKBgHAAcv9nMCG57qfnqaXF814n243gTCSqpDVHE1B9e0HaGQhIrimC\nCC6/Q8mgk7nqz8P2dkcMVfdfOVUoFuWuSmLLbBPjvvZ7P5DX96VTQUYgOVfsM8Nq\ndQbiRHiKGbQS7C0qHHzuLb9wXLBMsT+xMOgScwdczm5iermxP78t07iZAoGASvPc\nyhESZK0PvZw7EAkXbC7eqd6MU5rWe5qVDp4W1e2XtyTKJ880YGLy2DlWYfBhp6zl\nn5Op06wAwUCRkXPu9QTcuE1aBjHBxh/URNY7Xx4iqIgpoqE4aijhkOfMUoV49Nc1\nLNZKKZV/eIgNN2tE56xox12id1MZ7eJ3Lxtkmk0CgYBKWfaMGntebOsbbnPxgCp4\nMto8KAmxiLcYouNxXYKcUy1mIR8qoi9QVHLwfzrK0lQuxVnwTa1Bq1MG7g0fNexF\nWic4c/ae/YBlF7wHDW4RhBzyOWiGTzpdufqGDrtRTwxsdfzhdDTwH4rGpZKqHMdQ\npU18FDl9zDdHIxwoY+8kSw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "github-actions@ku-gcp-hackathon.iam.gserviceaccount.com",
+  "client_id": "113362958316681695083",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/github-actions%40ku-gcp-hackathon.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

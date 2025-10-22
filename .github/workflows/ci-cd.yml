@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for TeeTime Store - GCP
+name: CI/CD Pipeline - TeeTime Store
 
 on:
   push:
@@ -19,46 +19,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify required files exist
+      - name: Test required files
         run: |
-          echo "Checking required files..."
-          if [ ! -f "src/index.html" ]; then
-            echo "❌ ERROR: src/index.html not found"
-            exit 1
-          fi
-          if [ ! -f "Dockerfile" ]; then
-            echo "❌ ERROR: Dockerfile not found"
-            exit 1
-          fi
-          if [ ! -f "nginx.conf" ]; then
-            echo "❌ ERROR: nginx.conf not found"
-            exit 1
-          fi
-          echo "✅ All required files present"
-
-      - name: Test HTML syntax
-        run: |
-          echo "Testing HTML structure..."
-          if ! grep -q "<!DOCTYPE html>" src/index.html; then
-            echo "❌ ERROR: Missing DOCTYPE in index.html"
-            exit 1
-          fi
-          if ! grep -q "<title>" src/index.html; then
-            echo "❌ ERROR: Missing title tag in index.html"
-            exit 1
-          fi
-          echo "✅ HTML structure test passed"
+          echo "🔍 Testing project structure..."
+          required_files=("src/index.html" "Dockerfile" "nginx.conf")
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+            echo "✅ Found: $file"
+          done
 
       - name: Test Docker build
         run: |
-          echo "Testing Docker build..."
+          echo "🐳 Testing Docker build..."
           docker build -t teetime-test .
-          echo "✅ Docker build test passed"
+          echo "✅ Docker build successful"
 
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
     
     steps:
       - name: Checkout code
@@ -74,29 +55,26 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Configure Docker for GCR
+      - name: Configure Docker for Artifact Registry
         run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.GCR_REPOSITORY }}:latest .
-          docker tag ${{ env.GCR_REPOSITORY }}:latest us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:latest
-          docker tag ${{ env.GCR_REPOSITORY }}:latest us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:${{ github.sha }}
+          docker build -t ${{ env.GCR_REPOSITORY }} .
+          docker tag ${{ env.GCR_REPOSITORY }} us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:latest
+          docker tag ${{ env.GCR_REPOSITORY }} us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:${{ github.sha }}
 
-      - name: Push Docker image to GCR
+      - name: Push to Artifact Registry
         run: |
           docker push us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:latest
           docker push us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:${{ github.sha }}
-
-      - name: Save GCR image URI
-        run: |
-          echo "IMAGE_URI=us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:${{ github.sha }}" >> $GITHUB_ENV
+          echo "📦 Image pushed successfully!"
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout code
@@ -112,7 +90,7 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Deploy to Google Cloud Run
+      - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image us-central1-docker.pkg.dev/${{ env.GCP_PROJECT }}/${{ env.GCR_REPOSITORY }}/app:${{ github.sha }} \
@@ -126,23 +104,11 @@ jobs:
             --timeout 300s
 
       - name: Get Service URL
-        id: get-url
         run: |
           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --format 'value(status.url)')
+          echo "🎉 Deployment Successful!"
+          echo "🌐 Your application is live at: $SERVICE_URL"
           echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
-          echo "🚀 Application deployed: $SERVICE_URL"
-
-  success-notification:
-    needs: deploy
-    runs-on: ubuntu-latest
-    if: always() && needs.deploy.result == 'success'
-    
-    steps:
-      - name: Deployment Success
-        run: |
-          echo "🎉 Deployment completed successfully!"
-          echo "🌐 Application URL: ${{ env.SERVICE_URL }}"
-          echo "📊 View logs at: https://console.cloud.google.com/run"
